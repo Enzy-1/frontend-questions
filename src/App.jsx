@@ -1,24 +1,126 @@
-import ChatPrompt from './components/ChatPrompt'
-import './App.css'
+import React, { useState } from 'react';
+import './App.css';
 
 function App() {
+  const [category, setCategory] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [userAnswers, setUserAnswers] = useState({});
+  const [score, setScore] = useState(null);
+  const categories = ['Moda', 'Historia', 'Ciencia', 'Deporte', 'Arte'];
+
+  const handleCategorySelect = async (selectedCategory) => {
+    setCategory(selectedCategory);
+    const fetchedQuestions = await fetchQuestions(selectedCategory);
+    setQuestions(fetchedQuestions);
+    setScore(null); // Reset the score when changing category
+    setUserAnswers({}); // Reset the user answers when changing category
+  };
+
+  const fetchQuestions = async (category) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/questions?category=${category}`);
+      const data = await response.json();
+      return data.questions;
+    } catch (error) {
+      console.error('Error al obtener preguntas:', error);
+      return [];
+    }
+  };
+
+  const handleCalculateScore = () => {
+    let correct = 0;
+    questions.forEach((q, i) => {
+      if (userAnswers[i] === q.respuesta_correcta) {
+        correct++;
+      }
+    });
+    const percentage = (correct / questions.length) * 100;
+    setScore(percentage);
+
+    // Guardar los resultados en la base de datos después de calcular el puntaje
+    saveResult(percentage);
+  };
+
+  const handleAnswerChange = (index, value) => {
+    setUserAnswers({ ...userAnswers, [index]: value });
+  };
+
+  // Función para enviar los resultados al backend
+  const saveResult = async (percentage) => {
+    const resultData = {
+      categoria: category,
+      preguntas: questions,
+      puntaje: percentage,
+    };
+
+    try {
+      const response = await fetch('http://localhost:5000/api/save-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resultData),
+      });
+
+      if (response.ok) {
+        console.log('Resultado guardado exitosamente');
+      } else {
+        console.error('Error al guardar el resultado');
+      }
+    } catch (error) {
+      console.error('Error al enviar el resultado al servidor:', error);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-indigo-100 flex flex-col items-center p-4">
-      <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-indigo-700 mb-4 mt-2">
-        Chat con IA
-      </h1>
-      
-      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col">
-        <div className="flex-1 flex flex-col pb-4">
-          <ChatPrompt />
-        </div>
-        
-        <p className="text-center text-purple-600 font-medium text-sm my-2">
-          Desarrollado con ❤️ para UNICATOLICA 2025
-        </p>
+    <div className="container">
+      <h1 className="title">Quiz por Categoría</h1>
+
+      <div className="category-container">
+        {categories.map((cat) => (
+          <button key={cat} className="category-button" onClick={() => handleCategorySelect(cat)}>
+            {cat}
+          </button>
+        ))}
       </div>
+
+      {questions.length > 0 && (
+        <div className="questions-container">
+          <h2>{category}</h2>
+          {questions.map((question, index) => (
+            <div key={index} className="question-card">
+              <p className="question-text">{index + 1}. {question.pregunta}</p>
+              <ul className="options-list">
+                {Object.entries(question.opciones).map(([key, value]) => (
+                  <li key={key}>
+                    <label>
+                      <input
+                        type="radio"
+                        name={`q${index}`}
+                        value={key}
+                        onChange={() => handleAnswerChange(index, key)}
+                      />
+                      {key}) {value}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <button className="calculate-button" onClick={handleCalculateScore}>
+            Calcular Puntaje
+          </button>
+
+          {score !== null && (
+            <div className="score">
+              <h3>Tu puntaje: {score}%</h3>
+            </div>
+          )}
+        </div>
+      )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
