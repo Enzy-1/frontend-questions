@@ -18,7 +18,7 @@ function App() {
 
   const fetchQuestions = async (category) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/questions?category=${category}`);
+      const response = await fetch(`https://backend-preguntas.vercel.app/api/questions?category=${category}`);
       const data = await response.json();
       return data.questions;
     } catch (error) {
@@ -54,7 +54,7 @@ function App() {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/save-result', {
+      const response = await fetch('https://backend-preguntas.vercel.app/api/save-result', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
