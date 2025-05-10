@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Brain, Shirt, BookOpen, FlaskConical, Dumbbell, Paintbrush } from 'lucide-react';
+import {
+  Brain, Shirt, BookOpen, FlaskConical, Dumbbell, Paintbrush,
+  ChevronLeft, ChevronRight
+} from 'lucide-react';
 
 const icons = {
   Moda: <Shirt className="w-6 h-6 mr-2" />,
@@ -14,6 +17,7 @@ function App() {
   const [questions, setQuestions] = useState([]);
   const [userAnswers, setUserAnswers] = useState({});
   const [score, setScore] = useState(null);
+  const [step, setStep] = useState(1); // 1: categoría, 2: preguntas, 3: resultado
   const categories = ['Moda', 'Historia', 'Ciencia', 'Deporte', 'Arte'];
 
   const handleCategorySelect = async (selectedCategory) => {
@@ -22,6 +26,7 @@ function App() {
     setQuestions(fetchedQuestions);
     setScore(null);
     setUserAnswers({});
+    setStep(2); // Ir a preguntas
   };
 
   const fetchQuestions = async (category) => {
@@ -43,6 +48,7 @@ function App() {
     const percentage = (correct / questions.length) * 100;
     setScore(percentage);
     saveResult(percentage);
+    setStep(3); // Ir a resultados
   };
 
   const handleAnswerChange = (index, value) => {
@@ -57,7 +63,6 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(resultData),
       });
-
       if (!response.ok) throw new Error('Error al guardar el resultado');
     } catch (error) {
       console.error('Error al enviar el resultado al servidor:', error);
@@ -70,21 +75,34 @@ function App() {
         <Brain className="w-8 h-8 mr-2 text-blue-700" /> Quiz por Categoría
       </h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => handleCategorySelect(cat)}
-            className="flex items-center justify-center bg-white shadow-md hover:bg-blue-100 px-4 py-2 rounded-xl text-blue-700 font-medium transition-all duration-300"
-          >
-            {icons[cat]} {cat}
-          </button>
-        ))}
-      </div>
+      {/* Pantalla 1: Categorías */}
+      {step === 1 && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => handleCategorySelect(cat)}
+              className="flex items-center justify-center bg-white shadow-md hover:bg-blue-100 px-4 py-2 rounded-xl text-blue-700 font-medium transition-all duration-300"
+            >
+              {icons[cat]} {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {questions.length > 0 && (
+      {/* Pantalla 2: Preguntas */}
+      {step === 2 && (
         <div className="w-full max-w-3xl bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-semibold text-center text-blue-800 mb-4">{category}</h2>
+          <div className="flex justify-between items-center mb-4">
+            <button
+              className="flex items-center text-blue-600 hover:underline"
+              onClick={() => setStep(1)}
+            >
+              <ChevronLeft className="w-5 h-5 mr-1" /> Volver
+            </button>
+            <h2 className="text-xl font-semibold text-blue-800">{category}</h2>
+          </div>
+
           {questions.map((question, index) => (
             <div key={index} className="mb-6 border-b pb-4">
               <p className="text-lg font-medium mb-2">
@@ -98,6 +116,7 @@ function App() {
                         type="radio"
                         name={`q${index}`}
                         value={key}
+                        checked={userAnswers[index] === key}
                         onChange={() => handleAnswerChange(index, key)}
                         className="accent-blue-600"
                       />
@@ -115,12 +134,20 @@ function App() {
           >
             Calcular Puntaje
           </button>
+        </div>
+      )}
 
-          {score !== null && (
-            <div className="mt-4 text-center">
-              <h3 className="text-lg font-semibold text-green-600">Tu puntaje: {score}%</h3>
-            </div>
-          )}
+      {/* Pantalla 3: Resultados */}
+      {step === 3 && (
+        <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 text-center">
+          <h2 className="text-2xl font-bold text-blue-800 mb-4">Resultados</h2>
+          <p className="text-lg text-green-600 mb-4">Tu puntaje: <strong>{score}%</strong></p>
+          <button
+            onClick={() => setStep(1)}
+            className="flex items-center justify-center mx-auto bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all"
+          >
+            <ChevronLeft className="w-5 h-5 mr-2" /> Volver a Categorías
+          </button>
         </div>
       )}
     </div>
